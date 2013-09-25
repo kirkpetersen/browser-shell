@@ -14,18 +14,13 @@ var Sandbox = {
 	 */
 	Model : Backbone.Model.extend({
 		defaults: {
-			history : [],
-			iframe : false, // if true, run `eval` inside a sandboxed iframe
-			fallback : true // if true, use native `eval` if the iframe method fails
+			history : []
 		},
 		initialize: function() {
 			_.bindAll(this);
 
 			// Attempt to fetch the Model from localStorage
 			this.fetch();
-
-			// Set up the iframe sandbox if needed
-			if ( this.get('iframe') ) this.iframeSetup();
 
 			// When the Model is destroyed (eg. via ':clear'), erase the current history as well
 			this.bind("destroy", function(model) {
@@ -52,8 +47,6 @@ var Sandbox = {
 				return command;
 			});
 
-			// Shouldn't save whether/not this is sandboxed (it's confusing)
-			delete data[0].iframe;
 			return data[0];
 		},
 
@@ -88,38 +81,13 @@ var Sandbox = {
 			return this;
 		},
 
-		// Creates the sandbox iframe, if needed, and stores it
-		iframeSetup : function() {
-			this.sandboxFrame = $('<iframe width="0" height="0"/>').css({visibility : 'hidden'}).appendTo('body')[0];
-			this.sandbox = this.sandboxFrame.contentWindow;
-
-			// This should help IE run eval inside the iframe.
-			if (!this.sandbox.eval && this.sandbox.execScript) {
-				this.sandbox.execScript("null");
-			}
-		},
-
-		// Runs `eval` safely inside the sandboxed iframe
-		iframeEval : function(command) {
-			// Set up the iframe if not set up already (in case iframe has been enabled):
-			if ( !this.sandbox ) this.iframeSetup();
-
-			// Evaluate inside the sandboxed iframe, if possible.
-			// If fallback is allowed, use basic eval, or else throw an error.
-			return this.sandbox.eval ? this.sandbox.eval(command) : this.get('fallback') ? eval(command) : new Error("Can't evaluate inside the iframe - please report this bug along with your browser information!");
-		},
-
 		// One way of loading scripts into the document or the sandboxed iframe:
 		load : function(src) {
 			var script = document.createElement('script');
 			script.type = "text/javascript";
 			script.src = src;
 
-			if ( this.get('iframe') ) {
-				return this.sandboxFrame ? this.sandboxFrame.contentDocument.body.appendChild(script) : new Error("sandbox: iframe has not been created yet, cannot load " + src);
-			} else {
-				return document.body.appendChild(script);
-			}
+			return document.body.appendChild(script);
 		},
 
 		// Evaluate a command and save it to history
@@ -136,7 +104,7 @@ var Sandbox = {
 			// Evaluate the command and store the eval result, adding some basic classes for syntax-highlighting
 			try {
                 jsCommand = CoffeeScript.compile( command, { bare: true } );
-				item.result = this.get('iframe') ? this.iframeEval(jsCommand) : eval.call(window, jsCommand);
+				item.result = eval.call(window, jsCommand);
 				if ( _.isUndefined(item.result) ) item._class = "undefined";
 				if ( _.isNumber(item.result) ) item._class = "number";
 				if ( _.isString(item.result) ) item._class = "string";
@@ -169,7 +137,7 @@ var Sandbox = {
 			// Set up the View Options
 			this.resultPrefix = opts.resultPrefix || "  => ";
 			this.tabCharacter = opts.tabCharacter || "\t";
-			this.placeholder = opts.placeholder || "// type some javascript and hit enter (:help for info)";
+			this.placeholder = opts.placeholder || "// type some coffeescript and hit enter (:help for info)";
 			this.helpText = opts.helpText || "type javascript commands into the console, hit enter to evaluate. \n[up/down] to scroll through history, ':clear' to reset it. \n[alt + return/up/down] for returns and multi-line editing.";
 
 			// Bind to the model's change event to update the View
