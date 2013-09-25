@@ -19,35 +19,10 @@ var Sandbox = {
 		initialize: function() {
 			_.bindAll(this);
 
-			// Attempt to fetch the Model from localStorage
-			this.fetch();
-
 			// When the Model is destroyed (eg. via ':clear'), erase the current history as well
 			this.bind("destroy", function(model) {
 				model.set({history:[]});
 			});
-		},
-
-		// The Sandbox Model tries to use the localStorage adapter to save the command history
-		localStorage: new Store("SandboxConsole"),
-		
-		// Parser for restoring the Model's state
-		// Backbone.localStorage adapter stores a collection, so grab the first 'model'
-		parse : function(data) {	
-
-			// `parse` also fires when doing a save, so just return the model for that
-			if ( !_.isArray(data) || data.length < 1 || !data[0] ) return data;
-
-			// Hide the saved command history, so that they don't show up in output,
-			// and delete the results and classes from each, because they won't be needed
-			data[0].history = _.map(data[0].history, function(command) {
-				command._hidden = true;
-				if ( command.result ) delete command.result;
-				if ( command._class ) delete command._class;
-				return command;
-			});
-
-			return data[0];
 		},
 
 		// Inspect an object and output the results
@@ -76,7 +51,6 @@ var Sandbox = {
 
 			// Update the history state and save the model
 			this.set({ history : history }).change();
-			this.save();
 
 			return this;
 		},
