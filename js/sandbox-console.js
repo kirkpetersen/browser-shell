@@ -124,6 +124,8 @@ var Sandbox = {
 
 		// Evaluate a command and save it to history
 		evaluate: function(command) {
+            var original = command;
+            
 			if ( !command )
 				return false;
 
@@ -133,10 +135,12 @@ var Sandbox = {
 			
 			// Evaluate the command and store the eval result, adding some basic classes for syntax-highlighting
 			try {
-				item.result = this.get('iframe') ? this.iframeEval(command) : eval.call(window, command);
+                jsCommand = CoffeeScript.compile( command, { bare: true } );
+				item.result = this.get('iframe') ? this.iframeEval(jsCommand) : eval.call(window, jsCommand);
 				if ( _.isUndefined(item.result) ) item._class = "undefined";
 				if ( _.isNumber(item.result) ) item._class = "number";
 				if ( _.isString(item.result) ) item._class = "string";
+                if ( _.isFunction(item.result) ) item._class = "function";
 			} catch(error) {
 				item.result = error.toString();
 				item._class = "error";
